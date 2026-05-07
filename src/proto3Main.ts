@@ -5,10 +5,21 @@ import * as cp from 'child_process';
 
 import * as vscode from 'vscode';
 import { PROTO3_MODE } from './proto3Mode';
-import { startPblsClient } from './pblsClient';
+import { startPblsClient, restartPblsClient } from './pblsClient';
 
 export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
   await startPblsClient(ctx);
+
+  ctx.subscriptions.push(
+    vscode.commands.registerCommand('proto3.reloadLanguageServer', async () => {
+      try {
+        await restartPblsClient(ctx);
+        vscode.window.showInformationMessage('Protobuf Language Server reloaded.');
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`Failed to reload language server: ${err.message || err}`);
+      }
+    })
+  );
 
   if (PROTO3_MODE.language) {
     vscode.languages.setLanguageConfiguration(PROTO3_MODE.language, {

@@ -81,7 +81,14 @@
           "description": "Path to the clang-format executable"
         }
       }
-    }
+    },
+    "commands": [
+      {
+        "command": "proto3.reloadLanguageServer",
+        "title": "Reload Protobuf Language Server",
+        "category": "Protobuf"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run build",

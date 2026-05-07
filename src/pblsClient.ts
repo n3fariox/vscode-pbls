@@ -146,16 +146,18 @@ function extractZip(zipPath: string, destDir: string): string | undefined {
   }
 }
 
-export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<void> {
+export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boolean> {
   if (pblsFailed) {
     if (!pblsFailedNotified) {
       log('pbls previously failed to start, not retrying');
       pblsFailedNotified = true;
     }
-    return;
+    return false;
   }
 
-  outputChannel = vscode.window.createOutputChannel('pbls');
+  if (!outputChannel) {
+    outputChannel = vscode.window.createOutputChannel('pbls');
+  }
 
   const config = vscode.workspace.getConfiguration('pbls');
   const customPath = config.get<string>('path');
@@ -171,13 +173,13 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<voi
     if (!exists) {
       log(`pbls not found at custom path: ${pblsPath}`);
       vscode.window.showErrorMessage(`pbls not found at "${pblsPath}".`);
-      return;
+      return false;
     }
     if (!isPblsAvailable(pblsPath)) {
       log(`pbls at custom path is broken: ${pblsPath}`);
       vscode.window.showErrorMessage(`pbls at "${pblsPath}" exists but failed to run.`);
       pblsFailed = true;
-      return;
+      return false;
     }
     log(`pbls found at custom path`);
   } else {
@@ -228,7 +230,7 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<voi
             fs.unlinkSync(cachedPath);
             pblsFailed = true;
             vscode.window.showErrorMessage('Cached pbls is broken. Please reload the window to download a fresh copy.');
-            return;
+            return false;
           }
           log(`Using cached pbls at ${cachedPath}`);
         } else {
@@ -238,7 +240,7 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<voi
           if (!release) {
             log('Failed to fetch release info');
             vscode.window.showErrorMessage('Failed to determine latest pbls version.');
-            return;
+            return false;
           }
 
           const asset = release.assets ? findAssetForPlatform(release.assets) : undefined;
@@ -251,7 +253,7 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<voi
             if (result === 'Download manually') {
               await vscode.env.openExternal(vscode.Uri.parse('https://github.com/rcorre/pbls/releases'));
             }
-            return;
+            return false;
           }
 
           const download = await vscode.window.showInformationMessage(
@@ -262,7 +264,7 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<voi
 
           if (download !== 'Yes') {
             log('User declined auto-download');
-            return;
+            return false;
           }
 
           vscode.window.showInformationMessage('Downloading pbls...');
@@ -294,7 +296,7 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<voi
 
             if (!extractedPath) {
               vscode.window.showErrorMessage('Failed to extract pbls. Check the pbls output channel for details.');
-              return;
+              return false;
             }
 
             fs.renameSync(extractedPath, cachedPath);
@@ -304,7 +306,7 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<voi
           } catch (err: any) {
             log(`Download failed: ${err.message || err}`);
             vscode.window.showErrorMessage('Failed to download pbls. Check the pbls output channel for details.');
-            return;
+            return false;
           }
         }
       }
@@ -347,10 +349,12 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<voi
   ctx.subscriptions.push(client);
   try {
     await client.start();
+    return true;
   } catch (err: any) {
     log(`Failed to start pbls: ${err.message || err}`);
     pblsFailed = true;
     client = undefined;
+    return false;
   }
 }
 
@@ -358,5 +362,15 @@ export async function stopPblsClient(): Promise<void> {
   if (client) {
     await client.stop();
     client = undefined;
+  }
+}
+
+export async function restartPblsClient(ctx: vscode.ExtensionContext): Promise<void> {
+  await stopPblsClient();
+  pblsFailed = false;
+  pblsFailedNotified = false;
+  const started = await startPblsClient(ctx);
+  if (!started || !client) {
+    throw new Error('Failed to start pbls. Check the pbls output channel for details.');
   }
 }
