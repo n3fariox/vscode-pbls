@@ -1,15 +1,15 @@
 {
-  "name": "vscode-proto3",
-  "displayName": "vscode-proto3",
+  "name": "vscode-pbls",
+  "displayName": "vscode-pbls",
   "description": "Protobuf support for Visual Studio Code powered by pbls",
   "version": "0.6.0",
   "publisher": "n3fariox",
   "license": "SEE LICENSE IN LICENSE.txt",
-  "icon": "images/vscode_extension_icon.png",
-  "homepage": "https://github.com/n3fariox/vscode-proto3/blob/main/README.md",
+  "icon": "images/proto_pbls.png",
+  "homepage": "https://github.com/n3fariox/vscode-pbls/blob/main/README.md",
   "repository": {
     "type": "git",
-    "url": "https://github.com/n3fariox/vscode-proto3"
+    "url": "https://github.com/n3fariox/vscode-pbls"
   },
   "engines": {
     "vscode": "^1.75.0"

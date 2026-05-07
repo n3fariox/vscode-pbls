@@ -1,13 +1,22 @@
-# vscode-proto3
+# vscode-pbls
 
-[![CI](https://github.com/zxh0/vscode-proto3/actions/workflows/ci.yml/badge.svg)](https://github.com/zxh0/vscode-proto3/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/zxh0/vscode-proto3/branch/master/graph/badge.svg)](https://codecov.io/gh/zxh0/vscode-proto3)
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/zxh404.vscode-proto3?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=zxh404.vscode-proto3)
-[![Installs](https://img.shields.io/visual-studio-marketplace/i/zxh404.vscode-proto3)](https://marketplace.visualstudio.com/items?itemName=zxh404.vscode-proto3)
+[![CI](https://github.com/n3fariox/vscode-pbls/actions/workflows/ci.yml/badge.svg)](https://github.com/n3fariox/vscode-pbls/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/n3fariox/vscode-pbls/branch/master/graph/badge.svg)](https://codecov.io/gh/n3fariox/vscode-pbls)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/n3fariox.vscode-pbls?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=n3fariox.vscode-pbls)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/n3fariox.vscode-proto3)](https://marketplace.visualstudio.com/items?itemName=n3fariox.vscode-pbls)
 
 Protobuf support for Visual Studio Code powered by [pbls](https://github.com/rcorre/pbls) language server.
 
-![icon](images/vscode_extension_icon.png)
+## History
+
+This was forked from the fantastic https://github.com/zxh0/vscode-proto3.
+
+The forced deprecation/redirection did not sit well with me and I never needed
+much more features than what it already had.
+
+At the same time, a good friend made pbls and I wanted to use it in vscode.
+
+https://github.com/rcorre/pbls
 
 ## Features
 
@@ -16,13 +25,13 @@ Protobuf support for Visual Studio Code powered by [pbls](https://github.com/rco
 - Go-to-definition for types and imports
 - Find all references
 - Document and workspace symbol search
-- Diagnostics via `protoc`
+- Diagnostics via `pbls`
 - Formatting via `clang-format`
-- Comprehensive snippets
 
 ## Requirements
 
 - Install [pbls](https://github.com/rcorre/pbls) language server
+    - Extension will prompt and install if it's not installed
 - (Optional) `clang-format` for formatting
 - (Optional) `protoc` for diagnostics (used by pbls)
 
@@ -109,9 +118,9 @@ See [CONTRIBUTING](CONTRIBUTING.md). PRs are welcome!
 
 ## Top contributors
 
-![Top contributors](https://contrib.rocks/image?repo=zxh0/vscode-proto3)
+![Top contributors](https://contrib.rocks/image?repo=n3fariox/vscode-pbls)
 
-See the full list on GitHub in the [contributors graph](https://github.com/zxh0/vscode-proto3/graphs/contributors).
+See the full list on GitHub in the [contributors graph](https://github.com/n3fariox/vscode-pbls/graphs/contributors).
 
 ## Release Notes
 
