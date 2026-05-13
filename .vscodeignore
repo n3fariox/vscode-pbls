@@ -1,8 +1,12 @@
 src/
+out/**/*.js.map
+out/src/
+out/test/
 test/
 example/
 .vscode/
 .github/
+node_modules/
 .gitignore
 .markdownlint.json
 .pbls.toml

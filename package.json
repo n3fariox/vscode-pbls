@@ -2,7 +2,7 @@
   "name": "vscode-pbls",
   "displayName": "vscode-pbls",
   "description": "Protobuf support for Visual Studio Code powered by pbls",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "publisher": "n3fariox",
   "license": "SEE LICENSE IN LICENSE.txt",
   "icon": "images/proto_pbls.png",
@@ -24,7 +24,7 @@
   "activationEvents": [
     "onLanguage:proto3"
   ],
-  "main": "./out/src/proto3Main",
+  "main": "./out/main.js",
   "contributes": {
     "languages": [
       {
@@ -102,9 +102,10 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run build",
+    "vscode:prepublish": "npm run bundle",
     "compile": "tsc -watch -p ./",
     "build": "tsc -p ./",
+    "bundle": "esbuild src/proto3Main.ts --bundle --outfile=out/main.js --external:vscode --format=cjs --platform=node --minify",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "lint:md": "markdownlint **/*.md --ignore node_modules",
@@ -122,6 +123,7 @@
     "@typescript-eslint/eslint-plugin": "^8.19.1",
     "@typescript-eslint/parser": "^8.19.1",
     "@vscode/vsce": "^3.9.1",
+    "esbuild": "^0.28.0",
     "eslint": "^9.17.0",
     "lint-staged": "^16.2.7",
     "markdownlint-cli": "^0.48.0",
