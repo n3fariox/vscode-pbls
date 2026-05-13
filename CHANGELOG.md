@@ -2,7 +2,7 @@
 
 ## 0.6.0: Initial pbls implementation
 
-#### Features
+### Features
 
 - Integrated pbls (Protobuf Language Server) for LSP features
   - completion

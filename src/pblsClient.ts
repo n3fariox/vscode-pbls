@@ -5,7 +5,12 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as cp from 'child_process';
 import * as vscode from 'vscode';
-import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
+import {
+  LanguageClient,
+  LanguageClientOptions,
+  ServerOptions,
+  TransportKind,
+} from 'vscode-languageclient/node';
 import { getApi, FileDownloader } from '@microsoft/vscode-file-downloader-api';
 
 type LogLevel = 'error' | 'warn' | 'info' | 'debug';
@@ -41,7 +46,8 @@ function log(level: LogLevel, message: string): void {
   if (!outputChannel) {
     outputChannel = vscode.window.createOutputChannel('pbls');
   }
-  const prefix = level === 'error' ? 'ERROR' : level === 'warn' ? 'WARN' : level === 'debug' ? 'DEBUG' : 'INFO';
+  const prefix =
+    level === 'error' ? 'ERROR' : level === 'warn' ? 'WARN' : level === 'debug' ? 'DEBUG' : 'INFO';
   outputChannel.appendLine(`[${new Date().toISOString()}] [${prefix}] ${message}`);
 }
 
@@ -65,34 +71,30 @@ interface GithubRelease {
 }
 
 async function getLatestRelease(): Promise<GithubRelease | undefined> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     log('info', 'Fetching latest pbls release...');
     const url = 'https://api.github.com/repos/rcorre/pbls/releases/latest';
     const lib = url.startsWith('https') ? require('https') : require('http');
 
-    const req = lib.get(
-      url,
-      { headers: { 'User-Agent': 'vscode-proto3' } },
-      (res: any) => {
-        if (res.statusCode !== 200) {
-          log('error', `Failed to fetch release: HTTP ${res.statusCode}`);
-          resolve(undefined);
-          return;
-        }
-        let data = '';
-        res.on('data', (chunk: string) => (data += chunk));
-        res.on('end', () => {
-          try {
-            const release = JSON.parse(data);
-            log('info', `Latest release: ${release.tag_name}`);
-            resolve(release);
-          } catch (e) {
-            log('error', `Failed to parse release response: ${e}`);
-            resolve(undefined);
-          }
-        });
+    const req = lib.get(url, { headers: { 'User-Agent': 'vscode-proto3' } }, (res: any) => {
+      if (res.statusCode !== 200) {
+        log('error', `Failed to fetch release: HTTP ${res.statusCode}`);
+        resolve(undefined);
+        return;
       }
-    );
+      let data = '';
+      res.on('data', (chunk: string) => (data += chunk));
+      res.on('end', () => {
+        try {
+          const release = JSON.parse(data);
+          log('info', `Latest release: ${release.tag_name}`);
+          resolve(release);
+        } catch (e) {
+          log('error', `Failed to parse release response: ${e}`);
+          resolve(undefined);
+        }
+      });
+    });
     req.on('error', (err: Error) => {
       log('error', `Failed to fetch release: ${err.message}`);
       resolve(undefined);
@@ -149,7 +151,10 @@ function extractZip(zipPath: string, destDir: string): string | undefined {
   try {
     log('info', `Extracting ${zipPath}...`);
     if (os.platform() === 'win32') {
-      cp.execSync(`powershell -command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`, { stdio: 'pipe' });
+      cp.execSync(
+        `powershell -command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`,
+        { stdio: 'pipe' }
+      );
     } else {
       cp.execSync(`unzip -o "${zipPath}" -d "${destDir}"`, { stdio: 'pipe' });
     }
@@ -253,7 +258,9 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
             log('error', `Cached pbls is broken, removing: ${cachedPath}`);
             fs.unlinkSync(cachedPath);
             pblsFailed = true;
-            vscode.window.showErrorMessage('Cached pbls is broken. Please reload the window to download a fresh copy.');
+            vscode.window.showErrorMessage(
+              'Cached pbls is broken. Please reload the window to download a fresh copy.'
+            );
             return false;
           }
           log('info', `Using cached pbls at ${cachedPath}`);
@@ -275,7 +282,9 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
               'Download manually'
             );
             if (result === 'Download manually') {
-              await vscode.env.openExternal(vscode.Uri.parse('https://github.com/rcorre/pbls/releases'));
+              await vscode.env.openExternal(
+                vscode.Uri.parse('https://github.com/rcorre/pbls/releases')
+              );
             }
             return false;
           }
@@ -319,7 +328,9 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
             }
 
             if (!extractedPath) {
-              vscode.window.showErrorMessage('Failed to extract pbls. Check the pbls output channel for details.');
+              vscode.window.showErrorMessage(
+                'Failed to extract pbls. Check the pbls output channel for details.'
+              );
               return false;
             }
 
@@ -329,7 +340,9 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
             vscode.window.showInformationMessage('pbls downloaded successfully.');
           } catch (err: any) {
             log('error', `Download failed: ${err.message || err}`);
-            vscode.window.showErrorMessage('Failed to download pbls. Check the pbls output channel for details.');
+            vscode.window.showErrorMessage(
+              'Failed to download pbls. Check the pbls output channel for details.'
+            );
             return false;
           }
         }
@@ -345,7 +358,9 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
     log('info', 'protoc found');
   } catch {
     log('warn', 'protoc not found - pbls validation will be limited');
-    vscode.window.showWarningMessage('protoc not found. Install it for full pbls validation support.');
+    vscode.window.showWarningMessage(
+      'protoc not found. Install it for full pbls validation support.'
+    );
   }
 
   const logLevel = getLogLevel();

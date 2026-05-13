@@ -9,14 +9,12 @@ Protobuf support for Visual Studio Code powered by [pbls](https://github.com/rco
 
 ## History
 
-This was forked from the fantastic https://github.com/zxh0/vscode-proto3.
+This was forked from the fantastic [vscode-proto3](https://github.com/zxh0/vscode-proto3).
 
 The forced deprecation/redirection did not sit well with me and I never needed
 much more features than what it already had.
 
-At the same time, a good friend made pbls and I wanted to use it in vscode.
-
-https://github.com/rcorre/pbls
+At the same time, a good friend made [pbls](https://github.com/rcorre/pbls) and I wanted to use it in vscode.
 
 ## Features
 
@@ -31,7 +29,7 @@ https://github.com/rcorre/pbls
 ## Requirements
 
 - Install [pbls](https://github.com/rcorre/pbls) language server
-    - Extension will prompt and install if it's not installed
+  - Extension will prompt and install if it's not installed
 - (Optional) `clang-format` for formatting
 - (Optional) `protoc` for diagnostics (used by pbls)
 
@@ -45,13 +43,18 @@ Create a `.pbls.toml` in your workspace root:
 proto_paths = ["path/to/protos", "/usr/include"]
 ```
 
-Configure the pbls path in VS Code settings:
+Configure the pbls path and log level in VS Code settings:
 
 ```json
 {
-  "pbls.path": "/path/to/pbls"
+  "pbls.path": "/path/to/pbls",
+  "pbls.logLevel": "info"
 }
 ```
+
+The `pbls.logLevel` setting controls verbosity for both the extension's output
+channel and the pbls server process. Available levels: `error`, `warn`, `info`
+(default), `debug`.
 
 ### clang-format
 

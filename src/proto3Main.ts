@@ -66,7 +66,9 @@ export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
           break;
       }
 
-      const style = vscode.workspace.getConfiguration('clang-format', document).get<string>('style');
+      const style = vscode.workspace
+        .getConfiguration('clang-format', document)
+        .get<string>('style');
       if (style && style.trim()) {
         args.push(`-style=${style}`);
       }
