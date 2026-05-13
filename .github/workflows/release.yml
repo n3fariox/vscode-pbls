@@ -34,7 +34,7 @@ jobs:
             - name: Package VS Code extension
               run: |
                   VERSION=$(node -p "require('./package.json').version")
-                  VSIX_NAME="vscode-proto3-${VERSION}.vsix"
+                  VSIX_NAME="vscode-pbls-${VERSION}.vsix"
                   npm run package:vsix
                   echo "VSIX_NAME=$VSIX_NAME" >> "$GITHUB_ENV"
 
