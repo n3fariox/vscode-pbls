@@ -63,12 +63,23 @@
     ],
     "configuration": {
       "type": "object",
-      "title": "vscode-proto3 configuration",
+      "title": "Pbls Settings",
       "properties": {
         "pbls.path": {
           "type": "string",
           "default": "pbls",
           "description": "Path to pbls executable"
+        },
+        "pbls.logLevel": {
+          "type": "string",
+          "default": "info",
+          "enum": [
+            "error",
+            "warn",
+            "info",
+            "debug"
+          ],
+          "description": "Log level for pbls output channel and server process"
         },
         "clang-format.style": {
           "type": "string",
@@ -101,7 +112,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "verify": "npm run lint && npm run lint:md && npm run format:check",
-    "package:vsix": "vsce package --out vscode-proto3-${npm_package_version}.vsix"
+    "package:vsix": "vsce package --out vscode-pbls-${npm_package_version}.vsix"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

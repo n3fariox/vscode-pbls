@@ -1,5 +1,5 @@
 name: ✨ Feature Request
-description: Suggest a new feature or enhancement for vscode-proto3
+description: Suggest a new feature or enhancement for vscode-pbls
 title: '[Feature]: '
 labels: ['enhancement', 'needs-triage']
 body:
@@ -8,7 +8,7 @@ body:
       value: |
         ## Thanks for suggesting a feature! 💡
 
-        We love hearing ideas to make vscode-proto3 better.
+        We love hearing ideas to make vscode-pbls better.
         Please describe your feature request in detail below.
 
   - type: checkboxes

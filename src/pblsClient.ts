@@ -8,17 +8,41 @@ import * as vscode from 'vscode';
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from 'vscode-languageclient/node';
 import { getApi, FileDownloader } from '@microsoft/vscode-file-downloader-api';
 
+type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+
+const LOG_LEVELS: Record<LogLevel, number> = {
+  error: 0,
+  warn: 1,
+  info: 2,
+  debug: 3,
+};
+
 let client: LanguageClient | undefined;
 let outputChannel: vscode.OutputChannel;
 let fileDownloader: FileDownloader | undefined;
 let pblsFailed: boolean = false;
 let pblsFailedNotified: boolean = false;
 
-function log(message: string): void {
+function getLogLevel(): LogLevel {
+  const config = vscode.workspace.getConfiguration('pbls');
+  const level = config.get<string>('logLevel');
+  if (level === 'error' || level === 'warn' || level === 'info' || level === 'debug') {
+    return level;
+  }
+  return 'info';
+}
+
+function shouldLog(level: LogLevel): boolean {
+  return LOG_LEVELS[level] <= LOG_LEVELS[getLogLevel()];
+}
+
+function log(level: LogLevel, message: string): void {
+  if (!shouldLog(level)) return;
   if (!outputChannel) {
     outputChannel = vscode.window.createOutputChannel('pbls');
   }
-  outputChannel.appendLine(`[${new Date().toISOString()}] ${message}`);
+  const prefix = level === 'error' ? 'ERROR' : level === 'warn' ? 'WARN' : level === 'debug' ? 'DEBUG' : 'INFO';
+  outputChannel.appendLine(`[${new Date().toISOString()}] [${prefix}] ${message}`);
 }
 
 function isPblsAvailable(pblsPath: string): boolean {
@@ -42,7 +66,7 @@ interface GithubRelease {
 
 async function getLatestRelease(): Promise<GithubRelease | undefined> {
   return new Promise((resolve) => {
-    log('Fetching latest pbls release...');
+    log('info', 'Fetching latest pbls release...');
     const url = 'https://api.github.com/repos/rcorre/pbls/releases/latest';
     const lib = url.startsWith('https') ? require('https') : require('http');
 
@@ -51,7 +75,7 @@ async function getLatestRelease(): Promise<GithubRelease | undefined> {
       { headers: { 'User-Agent': 'vscode-proto3' } },
       (res: any) => {
         if (res.statusCode !== 200) {
-          log(`Failed to fetch release: HTTP ${res.statusCode}`);
+          log('error', `Failed to fetch release: HTTP ${res.statusCode}`);
           resolve(undefined);
           return;
         }
@@ -60,17 +84,17 @@ async function getLatestRelease(): Promise<GithubRelease | undefined> {
         res.on('end', () => {
           try {
             const release = JSON.parse(data);
-            log(`Latest release: ${release.tag_name}`);
+            log('info', `Latest release: ${release.tag_name}`);
             resolve(release);
           } catch (e) {
-            log(`Failed to parse release response: ${e}`);
+            log('error', `Failed to parse release response: ${e}`);
             resolve(undefined);
           }
         });
       }
     );
     req.on('error', (err: Error) => {
-      log(`Failed to fetch release: ${err.message}`);
+      log('error', `Failed to fetch release: ${err.message}`);
       resolve(undefined);
     });
   });
@@ -99,7 +123,7 @@ function findAssetForPlatform(assets: GithubAsset[]): GithubAsset | undefined {
 
 function extractTarXz(tarPath: string, destDir: string): string | undefined {
   try {
-    log(`Extracting ${tarPath}...`);
+    log('info', `Extracting ${tarPath}...`);
     cp.execSync(`tar -xf "${tarPath}" -C "${destDir}"`, { stdio: 'pipe' });
 
     const files = fs.readdirSync(destDir);
@@ -110,20 +134,20 @@ function extractTarXz(tarPath: string, destDir: string): string | undefined {
       if (os.platform() !== 'win32') {
         fs.chmodSync(binaryPath, 0o755);
       }
-      log(`Extracted to ${binaryPath}`);
+      log('info', `Extracted to ${binaryPath}`);
       return binaryPath;
     }
-    log('Could not find pbls binary in extracted files');
+    log('error', 'Could not find pbls binary in extracted files');
     return undefined;
   } catch (err) {
-    log(`Extraction failed: ${err}`);
+    log('error', `Extraction failed: ${err}`);
     return undefined;
   }
 }
 
 function extractZip(zipPath: string, destDir: string): string | undefined {
   try {
-    log(`Extracting ${zipPath}...`);
+    log('info', `Extracting ${zipPath}...`);
     if (os.platform() === 'win32') {
       cp.execSync(`powershell -command "Expand-Archive -Path '${zipPath}' -DestinationPath '${destDir}' -Force"`, { stdio: 'pipe' });
     } else {
@@ -135,13 +159,13 @@ function extractZip(zipPath: string, destDir: string): string | undefined {
 
     if (binary) {
       const binaryPath = path.join(destDir, binary);
-      log(`Extracted to ${binaryPath}`);
+      log('info', `Extracted to ${binaryPath}`);
       return binaryPath;
     }
-    log('Could not find pbls binary in extracted files');
+    log('error', 'Could not find pbls binary in extracted files');
     return undefined;
   } catch (err) {
-    log(`Extraction failed: ${err}`);
+    log('error', `Extraction failed: ${err}`);
     return undefined;
   }
 }
@@ -149,7 +173,7 @@ function extractZip(zipPath: string, destDir: string): string | undefined {
 export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boolean> {
   if (pblsFailed) {
     if (!pblsFailedNotified) {
-      log('pbls previously failed to start, not retrying');
+      log('info', 'pbls previously failed to start, not retrying');
       pblsFailedNotified = true;
     }
     return false;
@@ -167,29 +191,29 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
 
   if (!isDefaultPath) {
     pblsPath = customPath!;
-    log(`Using custom pbls path: ${pblsPath}`);
+    log('info', `Using custom pbls path: ${pblsPath}`);
 
     const exists = fs.existsSync(pblsPath);
     if (!exists) {
-      log(`pbls not found at custom path: ${pblsPath}`);
+      log('error', `pbls not found at custom path: ${pblsPath}`);
       vscode.window.showErrorMessage(`pbls not found at "${pblsPath}".`);
       return false;
     }
     if (!isPblsAvailable(pblsPath)) {
-      log(`pbls at custom path is broken: ${pblsPath}`);
+      log('error', `pbls at custom path is broken: ${pblsPath}`);
       vscode.window.showErrorMessage(`pbls at "${pblsPath}" exists but failed to run.`);
       pblsFailed = true;
       return false;
     }
-    log(`pbls found at custom path`);
+    log('info', `pbls found at custom path`);
   } else {
     if (isPblsAvailable('pbls')) {
       pblsPath = 'pbls';
-      log('pbls found on PATH');
+      log('info', 'pbls found on PATH');
     } else {
-      log('pbls not found on PATH, checking common locations...');
-      log(`PATH environment variable: ${process.env.PATH}`);
-      
+      log('info', 'pbls not found on PATH, checking common locations...');
+      log('debug', `PATH environment variable: ${process.env.PATH}`);
+
       // Check common installation locations
       const commonPaths = [
         path.join(os.homedir(), '.cargo', 'bin', 'pbls'),
@@ -203,19 +227,19 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
 
       let found = false;
       for (const p of commonPaths) {
-        log(`Checking common path: ${p}`);
+        log('debug', `Checking common path: ${p}`);
         if (fs.existsSync(p)) {
-          log(`  File exists, checking if pbls is available...`);
+          log('debug', `  File exists, checking if pbls is available...`);
           if (isPblsAvailable(p)) {
             pblsPath = p;
-            log(`pbls found at common location: ${p}`);
+            log('info', `pbls found at common location: ${p}`);
             found = true;
             break;
           } else {
-            log(`  pbls not available at ${p}`);
+            log('debug', `  pbls not available at ${p}`);
           }
         } else {
-          log(`  File does not exist`);
+          log('debug', `  File does not exist`);
         }
       }
 
@@ -226,26 +250,26 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
         if (fs.existsSync(cachedPath)) {
           pblsPath = cachedPath;
           if (!isPblsAvailable(pblsPath)) {
-            log(`Cached pbls is broken, removing: ${cachedPath}`);
+            log('error', `Cached pbls is broken, removing: ${cachedPath}`);
             fs.unlinkSync(cachedPath);
             pblsFailed = true;
             vscode.window.showErrorMessage('Cached pbls is broken. Please reload the window to download a fresh copy.');
             return false;
           }
-          log(`Using cached pbls at ${cachedPath}`);
+          log('info', `Using cached pbls at ${cachedPath}`);
         } else {
-          log('pbls not found, attempting auto-download...');
+          log('info', 'pbls not found, attempting auto-download...');
 
           const release = await getLatestRelease();
           if (!release) {
-            log('Failed to fetch release info');
+            log('error', 'Failed to fetch release info');
             vscode.window.showErrorMessage('Failed to determine latest pbls version.');
             return false;
           }
 
           const asset = release.assets ? findAssetForPlatform(release.assets) : undefined;
           if (!asset) {
-            log(`Unsupported platform: ${os.platform()} ${os.arch()}`);
+            log('error', `Unsupported platform: ${os.platform()} ${os.arch()}`);
             const result = await vscode.window.showErrorMessage(
               `pbls not found and automatic download is not supported for your platform (${os.platform()} ${os.arch()}).`,
               'Download manually'
@@ -263,12 +287,12 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
           );
 
           if (download !== 'Yes') {
-            log('User declined auto-download');
+            log('info', 'User declined auto-download');
             return false;
           }
 
           vscode.window.showInformationMessage('Downloading pbls...');
-          log(`Downloading from ${asset.browser_download_url}...`);
+          log('info', `Downloading from ${asset.browser_download_url}...`);
 
           try {
             if (!fileDownloader) {
@@ -281,7 +305,7 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
               ctx
             );
 
-            log(`Downloaded to ${downloadedUri.fsPath}`);
+            log('info', `Downloaded to ${downloadedUri.fsPath}`);
 
             let extractedPath: string | undefined;
             if (asset.name.endsWith('.tar.xz')) {
@@ -301,10 +325,10 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
 
             fs.renameSync(extractedPath, cachedPath);
             pblsPath = cachedPath;
-            log(`pbls downloaded and extracted to ${cachedPath}`);
+            log('info', `pbls downloaded and extracted to ${cachedPath}`);
             vscode.window.showInformationMessage('pbls downloaded successfully.');
           } catch (err: any) {
-            log(`Download failed: ${err.message || err}`);
+            log('error', `Download failed: ${err.message || err}`);
             vscode.window.showErrorMessage('Failed to download pbls. Check the pbls output channel for details.');
             return false;
           }
@@ -313,16 +337,18 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
     }
   }
 
-  log(`Starting pbls language server from: ${pblsPath}`);
+  log('info', `Starting pbls language server from: ${pblsPath}`);
 
   // Check if protoc is available (pbls uses it for validation)
   try {
     cp.execSync('protoc --version', { stdio: 'ignore' });
-    log('protoc found');
+    log('info', 'protoc found');
   } catch {
-    log('protoc not found - pbls validation will be limited');
+    log('warn', 'protoc not found - pbls validation will be limited');
     vscode.window.showWarningMessage('protoc not found. Install it for full pbls validation support.');
   }
+
+  const logLevel = getLogLevel();
 
   const serverOptions: ServerOptions = {
     command: pblsPath,
@@ -332,7 +358,7 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
       cwd: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd(),
       env: {
         ...process.env,
-        RUST_LOG: 'debug',
+        RUST_LOG: logLevel,
       },
     },
   };
@@ -351,7 +377,7 @@ export async function startPblsClient(ctx: vscode.ExtensionContext): Promise<boo
     await client.start();
     return true;
   } catch (err: any) {
-    log(`Failed to start pbls: ${err.message || err}`);
+    log('error', `Failed to start pbls: ${err.message || err}`);
     pblsFailed = true;
     client = undefined;
     return false;

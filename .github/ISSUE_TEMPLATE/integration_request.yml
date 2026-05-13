@@ -8,7 +8,7 @@ body:
       value: |
         ## Tool Integration Request 🔧
 
-        Want vscode-proto3 to work with another tool? Let us know!
+        Want vscode-pbls to work with another tool? Let us know!
 
         **Currently supported:**
         - protoc (Protocol Buffer Compiler)
