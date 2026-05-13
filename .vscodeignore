@@ -1,0 +1,14 @@
+src/
+test/
+example/
+.vscode/
+.github/
+.gitignore
+.markdownlint.json
+.pbls.toml
+.pre-commit-config.yaml
+CONTRIBUTORS
+eslint.config.mjs
+mise.toml
+tsconfig.json
+vsc-extension-quickstart.md

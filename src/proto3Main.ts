@@ -1,108 +1,30 @@
 'use strict';
 
 import * as path from 'path';
+import * as cp from 'child_process';
 
-import vscode = require('vscode');
-import cp = require('child_process');
-import { Proto3CompletionItemProvider } from './proto3Suggest';
-import { Proto3LanguageDiagnosticProvider } from './proto3Diagnostic';
-import { Proto3Compiler } from './proto3Compiler';
+import * as vscode from 'vscode';
 import { PROTO3_MODE } from './proto3Mode';
-import { Proto3DefinitionProvider } from './proto3Definition';
-import { Proto3Configuration } from './proto3Configuration';
-import { Proto3DocumentSymbolProvider } from './proto3SymbolProvider';
-import { Proto3RenameProvider } from './proto3Rename';
-import { Proto3RenumberCommand } from './proto3Renumber';
+import { startPblsClient, restartPblsClient } from './pblsClient';
 
-export function activate(ctx: vscode.ExtensionContext): void {
-  ctx.subscriptions.push(
-    vscode.languages.registerCompletionItemProvider(
-      PROTO3_MODE,
-      new Proto3CompletionItemProvider(),
-      '.',
-      '"'
-    )
-  );
-  ctx.subscriptions.push(
-    vscode.languages.registerDefinitionProvider(PROTO3_MODE, new Proto3DefinitionProvider())
-  );
-  ctx.subscriptions.push(
-    vscode.languages.registerRenameProvider(PROTO3_MODE, new Proto3RenameProvider())
-  );
-
-  const diagnosticProvider = new Proto3LanguageDiagnosticProvider();
-
-  vscode.languages.registerDocumentSymbolProvider('proto3', new Proto3DocumentSymbolProvider());
+export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
+  await startPblsClient(ctx);
 
   ctx.subscriptions.push(
-    vscode.workspace.onWillSaveTextDocument(event => {
-      if (event.document.languageId !== 'proto3') {
-        return;
+    vscode.commands.registerCommand('proto3.reloadLanguageServer', async () => {
+      try {
+        await restartPblsClient(ctx);
+        vscode.window.showInformationMessage('Protobuf Language Server reloaded.');
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`Failed to reload language server: ${err.message || err}`);
       }
-
-      const workspaceFolder = vscode.workspace.getWorkspaceFolder(event.document.uri);
-      if (!Proto3Configuration.Instance(workspaceFolder).renumberOnSave()) {
-        return;
-      }
-
-      const edits = Proto3RenumberCommand.getDocumentTextEdits(event.document);
-      if (edits.length === 0) {
-        return;
-      }
-
-      event.waitUntil(Promise.resolve(edits));
     })
   );
-
-  vscode.workspace.onDidSaveTextDocument(event => {
-    if (event.languageId == 'proto3') {
-      const workspaceFolder = vscode.workspace.getWorkspaceFolder(event.uri);
-      const compiler = new Proto3Compiler(workspaceFolder);
-      diagnosticProvider.createDiagnostics(event, compiler);
-      if (Proto3Configuration.Instance(workspaceFolder).compileOnSave()) {
-        compiler.compileActiveProto();
-      }
-    }
-  });
-
-  ctx.subscriptions.push(
-    vscode.commands.registerCommand('proto3.compile.one', () => {
-      const currentFile = vscode.window.activeTextEditor?.document;
-      if (!currentFile) {
-        return;
-      }
-      const workspaceFolder = vscode.workspace.getWorkspaceFolder(currentFile.uri);
-      const compiler = new Proto3Compiler(workspaceFolder);
-      compiler.compileActiveProto();
-    })
-  );
-
-  ctx.subscriptions.push(
-    vscode.commands.registerCommand('proto3.compile.all', () => {
-      const currentFile = vscode.window.activeTextEditor?.document;
-      if (!currentFile) {
-        return;
-      }
-      const workspaceFolder = vscode.workspace.getWorkspaceFolder(currentFile.uri);
-      const compiler = new Proto3Compiler(workspaceFolder);
-      compiler.compileAllProtos();
-    })
-  );
-
-  ctx.subscriptions.push(
-    vscode.commands.registerCommand('proto3.renumber.scope', () => {
-      Proto3RenumberCommand.run();
-    })
-  );
-
-  //console.log('Congratulations, your extension "vscode-pb3" is now active!');
 
   if (PROTO3_MODE.language) {
     vscode.languages.setLanguageConfiguration(PROTO3_MODE.language, {
       indentationRules: {
-        // ^(.*\*/)?\s*\}.*$
         decreaseIndentPattern: /^(.*\*\/)?\s*\}.*$/,
-        // ^.*\{[^}'']*$
         increaseIndentPattern: /^.*\{[^}'']*$/,
       },
       wordPattern:
@@ -122,36 +44,51 @@ export function activate(ctx: vscode.ExtensionContext): void {
 
   vscode.languages.registerDocumentFormattingEditProvider('proto3', {
     provideDocumentFormattingEdits(document: vscode.TextDocument): vscode.TextEdit[] {
+      // Check if clang-format is available
+      try {
+        cp.execFileSync('clang-format', ['--version'], { stdio: 'ignore' });
+      } catch {
+        vscode.window.showErrorMessage('clang-format not found. Install it or disable formatting.');
+        return [];
+      }
+
       const args: string[] = [];
       const opts: { input: string; cwd?: string } = { input: document.getText() };
 
-      // In order for clang-format to find the correct formatting file we need to have cwd set appropriately
       switch (document.uri.scheme) {
-        case 'untitled': // File has not yet been saved to disk use workspace path
+        case 'untitled':
           opts.cwd = vscode.workspace.rootPath;
           args.push(`--assume-filename=untitled.proto`);
           break;
-        case 'file': // File is on disk use it's directory
+        case 'file':
           opts.cwd = path.dirname(document.uri.fsPath);
           args.push(`--assume-filename=${document.uri.fsPath}`);
           break;
       }
 
-      let style = vscode.workspace.getConfiguration('clang-format', document).get<string>('style');
-      style = style && style.trim();
-      if (style) args.push(`-style=${style}`);
+      const style = vscode.workspace
+        .getConfiguration('clang-format', document)
+        .get<string>('style');
+      if (style && style.trim()) {
+        args.push(`-style=${style}`);
+      }
 
-      const stdout = cp.execFileSync('clang-format', args, opts);
-      return [
-        new vscode.TextEdit(
-          document.validateRange(new vscode.Range(0, 0, Infinity, Infinity)),
-          stdout ? stdout.toString() : ''
-        ),
-      ];
+      try {
+        const stdout = cp.execFileSync('clang-format', args, opts);
+        return [
+          new vscode.TextEdit(
+            document.validateRange(new vscode.Range(0, 0, Infinity, Infinity)),
+            stdout ? stdout.toString() : ''
+          ),
+        ];
+      } catch (err: any) {
+        vscode.window.showErrorMessage(`clang-format failed: ${err.message || err}`);
+        return [];
+      }
     },
   });
 }
 
-export function deactivate() {
+export async function deactivate(): Promise<void> {
   //
 }

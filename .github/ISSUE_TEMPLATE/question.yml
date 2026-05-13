@@ -1,5 +1,5 @@
 name: ❓ Question / Help
-description: Ask a question or get help with using vscode-proto3
+description: Ask a question or get help with using vscode-pbls
 title: '[Question]: '
 labels: ['question', 'needs-triage']
 body:
@@ -9,8 +9,8 @@ body:
         ## Need help? We're here for you! 🤝
 
         Before asking, please check:
-        - [README](https://github.com/zxh0/vscode-proto3#readme) for setup instructions
-        - [Existing issues](https://github.com/zxh0/vscode-proto3/issues) for similar questions
+        - [README](https://github.com/n3fariox/vscode-pbls#readme) for setup instructions
+        - [Existing issues](https://github.com/n3fariox/vscode-pbls/issues) for similar questions
 
         If you still need help, fill out the form below.
 

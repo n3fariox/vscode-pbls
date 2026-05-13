@@ -10,5 +10,5 @@ contact_links:
     url: https://github.com/microsoft/vscode-discussions/discussions
     about: General VS Code questions and discussions
   - name: 🔍 Search Existing Issues
-    url: https://github.com/zxh0/vscode-proto3/issues?q=is%3Aissue
+    url: https://github.com/n3fariox/vscode-pbls/issues?q=is%3Aissue
     about: Search through existing issues before creating a new one
